@@ -293,6 +293,45 @@ def split_dataset_folder(all_images, all_labels, split_ratios, shuffle=False, se
     
 
 
+def split_dataset_5fold(data_folder, fold):
+    """
+    Splits the dataset into training, validation, and test sets based on the specified fold.
+
+    Parameters:
+    - data_folder (str): Path to the dataset folder containing 'images' and 'labels' subdirectories.
+    - fold (int): The fold number (0 through 4) determining the split.
+
+    Returns:
+    - train_img_files (list): List of training image file paths.
+    - train_seg_files (list): List of training segmentation label file paths.
+    - valid_img_files (list): List of validation image file paths.
+    - valid_seg_files (list): List of validation segmentation label file paths.
+    - test_img_files (list): List of test image file paths.
+    - test_seg_files (list): List of test segmentation label file paths.
+    """
+    # Retrieve and sort image and label file paths
+    image_files = natsorted(glob.glob(f'{data_folder}/images/*.tiff'))
+    seg_files = natsorted(glob.glob(f'{data_folder}/labels/*.tiff'))
+
+    # Ensure the fold value is within the valid range
+    if fold < 0 or fold > 4:
+        raise ValueError("Fold must be an integer between 0 and 4.")
+
+    # Determine validation and test sets based on the fold
+    valid_img_files = [f for i, f in enumerate(image_files) if i % 5 == fold]
+    valid_seg_files = [f for i, f in enumerate(seg_files) if i % 5 == fold]
+
+    test_img_files = [f for i, f in enumerate(image_files) if i % 5 == (fold + 1) % 5]
+    test_seg_files = [f for i, f in enumerate(seg_files) if i % 5 == (fold + 1) % 5]
+
+    # Remaining files are used for training
+    train_img_files = [f for f in image_files if f not in valid_img_files and f not in test_img_files]
+    train_seg_files = [f for f in seg_files if f not in valid_seg_files and f not in test_seg_files]
+
+    return train_img_files, train_seg_files, valid_img_files, valid_seg_files, test_img_files, test_seg_files
+
+
+
 class Sampler(torch.utils.data.Sampler):
     # sampler from monai package, Copyright 2020 - 2022 MONAI Consortium
     def __init__(self, dataset, num_replicas=None, rank=None, shuffle=True, make_even=True):
@@ -425,8 +464,9 @@ def folder_loader(args):
             img_reshape = tuple(int(e) for e in img_reshape)
 
         else:
-            raise Warning("dataset not defined")
             img_reshape = None
+            raise Warning("dataset not defined")
+
 
         train_transform = transforms.Compose(
             [
@@ -521,7 +561,7 @@ def folder_loader(args):
     else:   # Inference mode
         print('Inference mode')
         img_full_paths = natsorted(glob.glob(os.path.join(args.data_folder,'images/*.tif*')))
-        # label_full_paths = natsorted(glob.glob(os.path.join(args.data_folder,'masks_with_flows/*.tif*')))
+
 
         test_img_full_paths = [f for i,f in enumerate(img_full_paths)]
         # test_label_full_paths = [f for i,f in enumerate(label_full_paths)]
@@ -542,7 +582,7 @@ def folder_loader(args):
         test_loader = data.DataLoader(
             test_ds, batch_size=args.batch_size, shuffle=False, num_workers=args.workers, sampler=None,
         )
-        return test_loader
+        return test_loader, test_img_full_paths
 
 
 
@@ -586,8 +626,9 @@ def folder_loader_nothefly(args):
         img_reshape = tuple(int(e) for e in img_reshape)
 
     else:
-        raise Warning("dataset not defined")
         img_reshape = None
+        raise Warning("dataset not defined")
+
 
     train_transform = transforms.Compose(
         [
@@ -667,10 +708,8 @@ def folder_loader_nothefly(args):
     )
 
 
-    if 1: #no cache
-        train_ds = data.Dataset(data=train_datalist, transform=train_transform)
-    else:
-        train_ds = data.CacheDataset(
+
+    train_ds = data.CacheDataset(
             data=train_datalist, transform=train_transform, cache_num=1, cache_rate=0.2, num_workers=args.workers
         )
     train_sampler = Sampler(train_ds) if args.distributed else None
@@ -793,10 +832,8 @@ def get_loader_Allen_tiff(args):
         ]
     )
 
-    if 0:
-        train_ds = data.Dataset(data=train_datalist, transform=train_transform)
-    else:
-        train_ds = data.CacheDataset(
+
+    train_ds = data.CacheDataset(
             data=train_datalist, transform=train_transform, cache_num=24, cache_rate=1, num_workers=args.workers
         )
     train_sampler = Sampler(train_ds) if args.distributed else None

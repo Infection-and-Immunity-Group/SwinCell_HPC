@@ -1,0 +1,14 @@
+{
+    "dataset": "nanolive",
+    "model_input_ROI": [128, 128, 32],
+    "infer_ROI": [128, 128, 32],
+    "model_path": "./results/colon_VIT_128_128_32_1_255/model_final.pt",
+    "model_type": "unetr",
+    "a_min": 1,
+    "a_max": 255,
+    "dsp": 1,
+    "min_size": 2500,
+    "data_dir": "./colon_dataset/colon_30/",
+    "output_dir": "prediction_1_255_unetr_monai_minsize2500"
+}
+

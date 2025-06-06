@@ -2,7 +2,7 @@
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
-from monai.networks.nets import SwinUNETR,UNet
+from monai.networks.nets import SwinUNETR,UNETR,UNet
 import tifffile
 
 def load_default_config():
@@ -77,16 +77,15 @@ def load_model(args):
             >>> print(model)
     """
  
-    if args.model == 'swin':
+    if str.lower(args.model) == 'swin':
         model = SwinUNETR(
             img_size=(args.roi_x, args.roi_y, args.roi_z),
             in_channels=1,
             out_channels=4,
-            # feature_size=args.feature_size,
             feature_size=args.feature_size,
             use_checkpoint=args.checkpoint,
         )
-    elif args.model == 'unet': # for ablation study
+    elif str.lower(args.model) == 'unet': # for ablation study
         model = UNet(
             # img_size=(args.roi_x, args.roi_y, args.roi_z),
             spatial_dims=args.spatial_dims,
@@ -95,6 +94,12 @@ def load_model(args):
             channels=(16, 32, 64, 128, 256),
             strides=(2, 2, 2, 2, 2),
             num_res_units=2
+        )
+    elif str.lower(args.model)  =="unetr":
+        model = UNETR(
+            in_channels=args.in_channels,
+            out_channels=args.out_channels,
+            img_size=(args.roi_x, args.roi_y, args.roi_z),
         )
     else:
         raise NotImplementedError 
@@ -333,9 +338,11 @@ def get_predefined_colors():
     :return: A list of normalized RGB color tuples.
     """
     colors = [
-        (207 / 255, 54 / 255, 112 / 255),
+        (207 / 255, 54 / 255, 112 / 255), # control group
+        
         (83 / 255, 153 / 255, 179 / 255),
         (112 / 255, 170 / 255, 87 / 255),
+        
         (115 / 255, 81 / 255, 155 / 255),
         (235 / 255, 123 / 255, 46 / 255),
     ]
