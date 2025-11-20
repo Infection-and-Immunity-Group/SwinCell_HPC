@@ -10,15 +10,10 @@ from monai import data, transforms
 from monai.transforms import  Transform, MapTransform
 from swincell.cellpose_dynamics import masks_to_flows
 from skimage import measure
-# import libtiff
-# libtiff.libtiff_ctypes.suppress_warnings()
+import os
+import glob
 import warnings
 warnings.filterwarnings('ignore')
-
-
-
-
-
 # from monai.utils.enums import TransformBackends
 
 class flow_reshape(Transform):
@@ -405,8 +400,7 @@ def folder_loader(args):
     """
 
     print('folder loader for tiff images')
-    import os
-    import glob
+
     if not args.test_mode:  # if not specified, use 80% for training, 20% for validation
         if args.fold is None:
             N = len(os.listdir(os.path.join(args.data_dir,'images')))
@@ -601,8 +595,6 @@ def folder_loader_nothefly(args):
     """
     
     print('folder loader for tiff images')
-    import os
-    import glob
 
     image_files = natsorted(glob.glob(args.data_dir +'images/*tif*'))
     mask_files = natsorted(glob.glob(args.data_dir +'labels/*tif*'))#

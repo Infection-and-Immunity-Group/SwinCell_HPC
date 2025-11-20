@@ -1,19 +1,12 @@
 import os
-# import pdb
-# import shutil
+
 import glob
 from natsort import natsorted
-import pandas as pd
-import time
 import argparse
-import numpy as np
 import torch
-import tifffile
 # from tensorboardX import SummaryWriter
 
 from swincell.utils.utils import batch_matching
-from swincell.cellpose_dynamics import compute_masks
-from functools import partial
 
 
 parser = argparse.ArgumentParser(description="SwinCell Inference")

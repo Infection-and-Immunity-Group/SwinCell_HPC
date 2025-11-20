@@ -1,18 +1,13 @@
 import os
-import time
 import argparse
 import json
-import glob
 import numpy as np
 import torch
 import tifffile
 from functools import partial
-from types import SimpleNamespace
-from natsort import natsorted
-from monai.networks.nets import SwinUNETR,UNETR, UNet
 from monai.inferers import sliding_window_inference
 from monai.transforms import AsDiscrete, Activations
-from swincell.utils.utils import load_model, AverageMeter, distributed_all_gather
+from swincell.utils.utils import load_model
 from swincell.utils.data_utils import folder_loader
 from swincell.cellpose_dynamics import compute_masks
 

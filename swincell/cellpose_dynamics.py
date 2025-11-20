@@ -9,16 +9,15 @@ Copyright © 2022 Howard Hughes Medical Institute, Authored by Carsen Stringer a
 
 import  os,glob
 from scipy.ndimage import maximum_filter1d, find_objects,binary_fill_holes
-
 from swincell.utils.utils import masks_to_edges
 import torch
 import numpy as np
 import tifffile
 from tqdm import trange
-from numba import njit, float32, int32, vectorize
+from numba import njit
 import cv2
 import fastremap
-
+from skimage import measure
 import logging
 dynamics_logger = logging.getLogger(__name__)
 
@@ -46,7 +45,6 @@ def batch_masks_to_flows(input_path,output_path,delete_edges=True,binary2sequent
     for file in mask_input_files:
         mask = tifffile.imread(file)
         if binary2sequential:
-            from skimage import measure
             mask =  measure.label(mask)
         output_image  = np.zeros((4,)+mask.shape,dtype=float)
         output_file_name = file.split('/')[-1].split('.')[0]+'_mask_with_flow.tiff'

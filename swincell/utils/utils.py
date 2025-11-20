@@ -4,6 +4,19 @@ import torch
 from matplotlib import pyplot as plt
 from monai.networks.nets import SwinUNETR,UNETR,UNet
 import tifffile
+import pandas as pd
+from scipy import ndimage
+from scipy.ndimage import find_objects, binary_fill_holes, binary_closing
+from scipy.ndimage import label
+from types import SimpleNamespace
+from numba import jit
+from tqdm import tqdm
+from scipy.optimize import linear_sum_assignment
+from skimage.measure import regionprops
+from collections import namedtuple
+from csbdeep.utils import _raise
+from scipy.ndimage import find_objects
+import cv2
 
 def load_default_config():
     """
@@ -28,7 +41,6 @@ def load_default_config():
             - fold (str): Specific fold of data to use, default is None.
             - workers (int): Number of worker threads for data loading, default is 8.
     """
-    from types import SimpleNamespace
     args = SimpleNamespace(
     data_dir =None,
     dataset='colon',
@@ -251,7 +263,7 @@ def calculate_cell_diameters(mask):
         >>> print(diameters)
         [2.8284271247461903, 2.8284271247461903]  # Example output based on default calculation settings
     """
-    from scipy import ndimage
+
     # Calculate the Euclidean distance transform of the mask
     distance_transform = ndimage.distance_transform_edt(mask)
     
@@ -386,8 +398,7 @@ def fill_small_holes_3d(masks, min_size=1000,bin_closing_structure=np.ones((5,5,
         0 represents no mask, while positive integers represent mask labels.
         The size is [Lz x Ly x Lx].
     """
-    from scipy.ndimage import find_objects, binary_fill_holes, binary_closing
-    from scipy.ndimage import label
+
     masks = masks.copy()
     masks,num_features = label(masks)
     slices = find_objects(masks)
@@ -419,16 +430,6 @@ def fill_small_holes_3d(masks, min_size=1000,bin_closing_structure=np.ones((5,5,
 
 
 # MASK Matching algorithm used by stardist algorithm:
-
-
-from numba import jit
-from tqdm import tqdm
-from scipy.optimize import linear_sum_assignment
-from skimage.measure import regionprops
-from collections import namedtuple
-from csbdeep.utils import _raise
-from scipy.ndimage import find_objects
-import cv2
 
 matching_criteria = dict()
 
@@ -998,8 +999,7 @@ def batch_matching(gt_files, seg_files, thresh_list=[0.5,0.625,0.75,0.875,1], do
             - match_3d (float): The matching metric for the 3D images.
 
     """
-    import tifffile
-    import pandas as pd
+
     if len(gt_files) != len(seg_files):
         raise ValueError('number of ground truth and prediction images do not match')
     output_df = pd.DataFrame()

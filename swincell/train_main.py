@@ -78,9 +78,7 @@ parser.add_argument("--pretrained_dir",default="./pretrained_models/",type=str,h
 def main_train():
     args = parser.parse_args()
     if args.fold:
-        args.logdir = "./" + args.logdir +'/fold'+str(args.fold)
-    else:
-        args.logdir = "./" + args.logdir
+        args.logdir = args.logdir +'/fold'+str(args.fold)
 
     if args.distributed:
         args.ngpus_per_node = torch.cuda.device_count()

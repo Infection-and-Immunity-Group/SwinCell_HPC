@@ -1,14 +1,8 @@
 import numpy as np
 import logging
 import sys
-from typing import List
-from scipy.ndimage import zoom
-import os
 from scipy import ndimage as ndi
 from scipy import stats
-import argparse
-from matplotlib import pyplot as plt
-
 import yaml
 
 def load_config(config_path):

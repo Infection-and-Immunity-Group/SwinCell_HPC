@@ -20,13 +20,8 @@ setup(
         'scikit-image>=0.19.3',
         'tqdm>=4.64.0',
         'monai[all]>=0.10',
-        'torch>=1.8.1',
-        
-        'libtiff>=0.4.2',
-        
+        'torch>=1.8.1',        
         'seaborn>=0.12.1',
-        
-        #
         'scipy>=1.7.1',
         #'scikit-learn>=1.1.3',
         'matplotlib>=3.8.3',
