@@ -28,7 +28,6 @@ setup(
         'pandas==1.3.4',
         'opencv_python_headless==3.4.18.65',
         'tifffile==2022.8.12',
-        'imagecodecs==2024.1.1',
         'tracker==0.1.1',
         'natsort==8.3.1',
         'tensorboardX==2.6.2.2', # version TBD
