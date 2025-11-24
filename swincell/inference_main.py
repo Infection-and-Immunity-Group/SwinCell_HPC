@@ -19,7 +19,7 @@ from swincell.utils.utils import get_random_cmap
 import matplotlib
 matplotlib.use("Agg")  # non-interactive backend good for savefig
 import matplotlib.pyplot as plt
-
+from tqdm import tqdm
 parser = argparse.ArgumentParser(description="SwinCell Training")
 parser.add_argument("--datadir", default=None, help="Dataset path")
 parser.add_argument("--a_min", default=0, type=float, help="cliped min input value")
@@ -103,7 +103,7 @@ model_inferer = partial(
 post_sigmoid = Activations(sigmoid=True)
 post_pred = AsDiscrete(argmax=False, threshold=0.5)
 with torch.no_grad():
-        for idx, batch_data in enumerate(test_loader):
+        for idx, batch_data in tqdm(enumerate(test_loader)):
             out_filename = test_datalist[idx]['image'].split('.')[0].split('/')[-1] +'_pred.tiff' 
             data_test = batch_data["image"]
             data_test = data_test.to(device)
