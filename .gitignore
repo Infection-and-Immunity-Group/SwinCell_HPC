@@ -18,4 +18,6 @@ Nanolive_dataset
 *.tar
 .yaml
 .venv2
+.python-
+.vscode
 .python-version
