@@ -175,6 +175,7 @@ def run_training(
     post_pred=None,
     semantic_classes=None,
 ):
+    train_losses = []
     writer = None
     if args.logdir is not None and args.rank == 0:
         writer = SummaryWriter(log_dir=args.logdir)
@@ -194,6 +195,7 @@ def run_training(
         train_loss, train_img_list = train_epoch(
             model, train_loader, optimizer, epoch=epoch, loss_func=loss_func, device = device, args=args
         )
+        train_losses.append(train_loss)
         if args.rank == 0:
             print(
                 "Final training  {}/{}".format(epoch, args.max_epochs - 1),
@@ -263,4 +265,4 @@ def run_training(
 
     print("Training Finished !, Best Accuracy: ", val_acc_max)
 
-    return val_acc_max
+    return val_acc_max, train_losses

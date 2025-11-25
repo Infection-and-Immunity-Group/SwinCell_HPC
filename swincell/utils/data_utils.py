@@ -473,7 +473,6 @@ def folder_loader(args, compute_flows = False):
                 [
                     transforms.LoadImaged(keys=["image", "label"]),
                     transforms.EnsureChannelFirstd(keys=["image", "label"]),
-                    flow_reshaped(keys=["label"]),
                     #----------------------------for multichannel image-----------------------
                     # transforms.AddChanneld(keys=["image"]),
                     # transforms.ConvertToMultiChannelNanolived(keys="label"),
@@ -509,7 +508,6 @@ def folder_loader(args, compute_flows = False):
                 [
                     transforms.LoadImaged(keys=["image", "label"]),
                     transforms.EnsureChannelFirstd(keys=["image", "label"]),
-                    flow_reshaped(keys=["label"]),
                     #----------------------------for multichannel-----------------------
                     # transforms.AddChanneld(keys=["image"]),
                     # transforms.ConvertToMultiChannelNanolived(keys="label"),
@@ -606,6 +604,7 @@ def folder_loader(args, compute_flows = False):
         )
         if 1: #no cache
             train_ds = data.Dataset(data=train_datalist, transform=train_transform)
+            print("ciao")
         else:
             train_ds = data.CacheDataset(
                 data=train_datalist, transform=train_transform, cache_num=1, cache_rate=0.2, num_workers=args.workers

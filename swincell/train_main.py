@@ -21,7 +21,8 @@ from monai.metrics import DiceMetric
 from monai.networks.nets import SwinUNETR, UNet,ViTAutoEnc, UNETR
 from monai.transforms import Activations, AsDiscrete
 from monai.utils.enums import MetricReduction
-from swincell.utils.device_utils import select_distributed_backend, is_cuda_available
+from swincell.utils.device_utils import select_distributed_backend, is_cuda_available, get_device
+
 
 
 parser = argparse.ArgumentParser(description="SwinCell Training")
@@ -72,10 +73,7 @@ parser.add_argument("--spatial_dims", default=3, type=int, help="spatial dimensi
 parser.add_argument("--downsample_factor", default=1, type=int, help="downsampling rate of input data, increase it when input images have very high resolution")
 parser.add_argument("--pretrained_dir",default="./pretrained_models/",type=str,help="pretrained checkpoint directory",)
 parser.add_argument("--compute_flows", action="store_true", help="Set true if you need to calculate flows")
-
-
-
-
+parser.add_argument("--plot_loss", action="store_true", help="Plot train loss")
 def main_train():
     args = parser.parse_args()
     if args.fold:
@@ -91,7 +89,7 @@ def main_train():
 
 
 def main_worker(gpu, args):
-
+    device = get_device()
     if args.distributed:
         torch.multiprocessing.set_start_method("fork", force=True)
     np.set_printoptions(formatter={"float": "{: 0.3f}".format}, suppress=True)
@@ -125,8 +123,6 @@ def main_worker(gpu, args):
             out_channels=args.out_channels,
             channels=(16, 32, 64, 128, 256),
             strides=(2, 2, 2, 2, 2),
-            
-
         )
     elif str.lower(args.model)  =='swin':
         model = SwinUNETR(
@@ -218,7 +214,7 @@ def main_worker(gpu, args):
             best_acc = checkpoint["best_acc"]
         print("=> loaded checkpoint '{}' (epoch {}) (bestacc {})".format(args.checkpoint, start_epoch, best_acc))
 
-    model.cuda(args.gpu)
+    model.to(device)
 
     if args.distributed:
         torch.cuda.set_device(args.gpu)
@@ -250,7 +246,7 @@ def main_worker(gpu, args):
 
     semantic_classes = ["Class1", "Class2", "Class3"]
 
-    accuracy = run_training(
+    accuracy, train_losses = run_training(
         model=model,
         train_loader=loader[0],
         val_loader=loader[1],
@@ -265,6 +261,13 @@ def main_worker(gpu, args):
         post_pred=post_pred,
         semantic_classes=semantic_classes,
     )
+    if args.plot_loss:
+        import matplotlib.pyplot as plt
+        plt.plot(train_losses)
+        plt.xlabel('epoch', fontsize=14)
+        plt.ylabel('loss', fontsize=14)
+        plt.title('Training loss')
+
     return accuracy
 
 

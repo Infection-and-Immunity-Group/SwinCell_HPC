@@ -91,7 +91,6 @@ def load_model(args):
  
     if str.lower(args.model) == 'swin':
         model = SwinUNETR(
-            img_size=(args.roi_x, args.roi_y, args.roi_z),
             in_channels=1,
             out_channels=4,
             feature_size=args.feature_size,
