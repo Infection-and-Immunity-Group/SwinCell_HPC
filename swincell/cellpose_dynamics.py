@@ -354,7 +354,7 @@ def masks_to_flows(masks, use_gpu=False, device=None):
 
     if device is None:
         device = get_device()
-    if device.type == "cuda":
+    if use_gpu:
         masks_to_flows_device = masks_to_flows_gpu
     else:
         masks_to_flows_device = masks_to_flows_cpu

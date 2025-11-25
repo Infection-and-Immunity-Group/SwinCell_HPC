@@ -78,7 +78,6 @@ test_transform = transforms.Compose(
         [
             transforms.LoadImaged(keys=["image", "label"]),
             transforms.EnsureChannelFirstd(keys=["image", "label"]),
-            # flow_reshaped(keys=["label"]),
             transforms.Resized(keys=["image", "label"],spatial_size=img_reshape),
             transforms.ScaleIntensityRanged(
                 keys=["image"], a_min=args.a_min, a_max=args.a_max, b_min=args.b_min, b_max=args.b_max, clip=True
