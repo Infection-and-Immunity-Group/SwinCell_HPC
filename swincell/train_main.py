@@ -267,6 +267,8 @@ def main_worker(gpu, args):
         plt.xlabel('epoch', fontsize=14)
         plt.ylabel('loss', fontsize=14)
         plt.title('Training loss')
+        plt.savefig(os.path.join(args.logdir, "train_losses.png"))
+        plt.close()
 
     return accuracy
 
