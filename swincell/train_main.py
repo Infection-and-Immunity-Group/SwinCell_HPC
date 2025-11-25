@@ -108,7 +108,7 @@ def main_worker(gpu, args):
         pass
     args.test_mode = False
     # loader = get_loader_Allen_tiff(args)  # Loader for allencell dataset
-    loader = folder_loader(args, compute_flows=args.compute_flows, device="cpu")
+    loader = folder_loader(args, compute_flows=args.compute_flows)
     print(args.rank, " gpu", args.gpu)
     if args.rank == 0:
         print("Batch size is:", args.batch_size, "epochs", args.max_epochs)
