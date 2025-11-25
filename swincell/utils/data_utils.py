@@ -377,7 +377,7 @@ class Sampler(torch.utils.data.Sampler):
 
 
 
-def folder_loader(args):
+def folder_loader(args, compute_flows = False):
     """
     Load the data for training, validation, or inference.
 
@@ -461,71 +461,141 @@ def folder_loader(args):
             img_reshape = None
             raise Warning("dataset not defined")
 
+        if compute_flows:
+            train_transform = transforms.Compose(
+                [
+                    transforms.LoadImaged(keys=["image", "label"]),
+                    transforms.EnsureChannelFirstd(keys=["image", "label"]),
+                    flow_reshaped(keys=["label"]),
+                    #----------------------------for multichannel image-----------------------
+                    # transforms.AddChanneld(keys=["image"]),
+                    # transforms.ConvertToMultiChannelNanolived(keys="label"),
+                    #----------------------------for single channel image-----------------------
+                    # transforms.AddChanneld(keys=["image","label"]),
+                    # transforms.AsDiscreted(keys=["label"],threshold=1),
+                    #----------------------------------------------------------------
+                    transforms.Resized(keys=["image", "label"],spatial_size=img_reshape),
 
-        train_transform = transforms.Compose(
-            [
-                transforms.LoadImaged(keys=["image", "label"]),
-                transforms.EnsureChannelFirstd(keys=["image", "label"]),
-                flow_reshaped(keys=["label"]),
-                #----------------------------for multichannel image-----------------------
-                # transforms.AddChanneld(keys=["image"]),
-                # transforms.ConvertToMultiChannelNanolived(keys="label"),
-                #----------------------------for single channel image-----------------------
-                # transforms.AddChanneld(keys=["image","label"]),
-                # transforms.AsDiscreted(keys=["label"],threshold=1),
-                #----------------------------------------------------------------
-                transforms.Resized(keys=["image", "label"],spatial_size=img_reshape),
+                    
+                    # transforms.RandZoomd(keys=["image", "label"],prob=0.5,min_zoom=0.85,max_zoom=1.15),
+                    # transforms.Spacingd(
+                    #     keys=["image", "label"], pixdim=(args.space_x, args.space_y, args.space_z), mode=("bilinear", "nearest")
+                    # ),
+                    transforms.ScaleIntensityRanged(
+                        keys=["image"], a_min=args.a_min, a_max=args.a_max, b_min=args.b_min, b_max=args.b_max, clip=True
+                    ),
+                    transforms.RandSpatialCropSamplesd(
+                        keys=["image","label"],
+                        roi_size=[args.roi_x, args.roi_y, args.roi_z],
+                        num_samples=2,
+                        random_center=True,
+                        random_size=False,
+                    ),
+                    # transforms.RandScaleIntensityd(keys="image", factors=0.1, prob=args.RandScaleIntensityd_prob),
+                    # transforms.RandShiftIntensityd(keys="image", offsets=0.1, prob=args.RandShiftIntensityd_prob),
+                    flow_generationd(keys=["label"]),
+                    transforms.ToTensord(keys=["image", "label"]),
+                ]
 
-                
-                # transforms.RandZoomd(keys=["image", "label"],prob=0.5,min_zoom=0.85,max_zoom=1.15),
-                # transforms.Spacingd(
-                #     keys=["image", "label"], pixdim=(args.space_x, args.space_y, args.space_z), mode=("bilinear", "nearest")
-                # ),
-                transforms.ScaleIntensityRanged(
-                    keys=["image"], a_min=args.a_min, a_max=args.a_max, b_min=args.b_min, b_max=args.b_max, clip=True
-                ),
-                transforms.RandSpatialCropSamplesd(
-                    keys=["image","label"],
-                    roi_size=[args.roi_x, args.roi_y, args.roi_z],
-                    num_samples=2,
-                    random_center=True,
-                    random_size=False,
-                ),
-                # transforms.RandScaleIntensityd(keys="image", factors=0.1, prob=args.RandScaleIntensityd_prob),
-                # transforms.RandShiftIntensityd(keys="image", offsets=0.1, prob=args.RandShiftIntensityd_prob),
-                transforms.ToTensord(keys=["image", "label"]),
-            ]
-        )
-        val_transform = transforms.Compose(
-            [
-                transforms.LoadImaged(keys=["image", "label"]),
-                transforms.EnsureChannelFirstd(keys=["image", "label"]),
-                flow_reshaped(keys=["label"]),
-                #----------------------------for multichannel-----------------------
-                # transforms.AddChanneld(keys=["image"]),
-                # transforms.ConvertToMultiChannelNanolived(keys="label"),
-                #----------------------------for single channel-----------------------
-                # transforms.AddChanneld(keys=["image","label"]),
-                # transforms.AsDiscreted(keys=["label"],threshold=1),
-                #----------------------------------------------------------------
+            )
+            val_transform = transforms.Compose(
+                [
+                    transforms.LoadImaged(keys=["image", "label"]),
+                    transforms.EnsureChannelFirstd(keys=["image", "label"]),
+                    flow_reshaped(keys=["label"]),
+                    #----------------------------for multichannel-----------------------
+                    # transforms.AddChanneld(keys=["image"]),
+                    # transforms.ConvertToMultiChannelNanolived(keys="label"),
+                    #----------------------------for single channel-----------------------
+                    # transforms.AddChanneld(keys=["image","label"]),
+                    # transforms.AsDiscreted(keys=["label"],threshold=1),
+                    #----------------------------------------------------------------
 
-                transforms.Resized(keys=["image", "label"],spatial_size=img_reshape),  #for nanolive
-                # transforms.RandZoomd(keys=["image", "label"],prob=0.5,min_zoom=0.85,max_zoom=1.05),
-                # transforms.Spacingd(
-                #     keys=["image", "label"], pixdim=(args.space_x, args.space_y, args.space_z), mode=("bilinear", "nearest")
-                # ),   # for  anisotropic datasets
-                transforms.ScaleIntensityRanged(
-                    keys=["image"], a_min=args.a_min, a_max=args.a_max, b_min=args.b_min, b_max=args.b_max, clip=True
-                ),
-                transforms.RandSpatialCropSamplesd(
-                    keys=["image","label"],
-                    roi_size=[args.roi_x, args.roi_y, args.roi_z],
-                    num_samples=2,
-                    random_center=True,
-                    random_size=False,
-                ),
-                transforms.ToTensord(keys=["image", "label"]),
-            ]
+                    transforms.Resized(keys=["image", "label"],spatial_size=img_reshape),  #for nanolive
+                    # transforms.RandZoomd(keys=["image", "label"],prob=0.5,min_zoom=0.85,max_zoom=1.05),
+                    # transforms.Spacingd(
+                    #     keys=["image", "label"], pixdim=(args.space_x, args.space_y, args.space_z), mode=("bilinear", "nearest")
+                    # ),   # for  anisotropic datasets
+                    transforms.ScaleIntensityRanged(
+                        keys=["image"], a_min=args.a_min, a_max=args.a_max, b_min=args.b_min, b_max=args.b_max, clip=True
+                    ),
+                    transforms.RandSpatialCropSamplesd(
+                        keys=["image","label"],
+                        roi_size=[args.roi_x, args.roi_y, args.roi_z],
+                        num_samples=2,
+                        random_center=True,
+                        random_size=False,
+                    ),
+                    flow_generationd(keys=["label"]),
+                    transforms.ToTensord(keys=["image", "label"]),
+                ])
+        else:
+            train_transform = transforms.Compose(
+                [
+                    transforms.LoadImaged(keys=["image", "label"]),
+                    transforms.EnsureChannelFirstd(keys=["image", "label"]),
+                    flow_reshaped(keys=["label"]),
+                    #----------------------------for multichannel image-----------------------
+                    # transforms.AddChanneld(keys=["image"]),
+                    # transforms.ConvertToMultiChannelNanolived(keys="label"),
+                    #----------------------------for single channel image-----------------------
+                    # transforms.AddChanneld(keys=["image","label"]),
+                    # transforms.AsDiscreted(keys=["label"],threshold=1),
+                    #----------------------------------------------------------------
+                    transforms.Resized(keys=["image", "label"],spatial_size=img_reshape),
+
+                    
+                    # transforms.RandZoomd(keys=["image", "label"],prob=0.5,min_zoom=0.85,max_zoom=1.15),
+                    # transforms.Spacingd(
+                    #     keys=["image", "label"], pixdim=(args.space_x, args.space_y, args.space_z), mode=("bilinear", "nearest")
+                    # ),
+                    transforms.ScaleIntensityRanged(
+                        keys=["image"], a_min=args.a_min, a_max=args.a_max, b_min=args.b_min, b_max=args.b_max, clip=True
+                    ),
+                    transforms.RandSpatialCropSamplesd(
+                        keys=["image","label"],
+                        roi_size=[args.roi_x, args.roi_y, args.roi_z],
+                        num_samples=2,
+                        random_center=True,
+                        random_size=False,
+                    ),
+                    # transforms.RandScaleIntensityd(keys="image", factors=0.1, prob=args.RandScaleIntensityd_prob),
+                    # transforms.RandShiftIntensityd(keys="image", offsets=0.1, prob=args.RandShiftIntensityd_prob),
+                    transforms.ToTensord(keys=["image", "label"]),
+                ]
+
+            )
+            val_transform = transforms.Compose(
+                [
+                    transforms.LoadImaged(keys=["image", "label"]),
+                    transforms.EnsureChannelFirstd(keys=["image", "label"]),
+                    flow_reshaped(keys=["label"]),
+                    #----------------------------for multichannel-----------------------
+                    # transforms.AddChanneld(keys=["image"]),
+                    # transforms.ConvertToMultiChannelNanolived(keys="label"),
+                    #----------------------------for single channel-----------------------
+                    # transforms.AddChanneld(keys=["image","label"]),
+                    # transforms.AsDiscreted(keys=["label"],threshold=1),
+                    #----------------------------------------------------------------
+
+                    transforms.Resized(keys=["image", "label"],spatial_size=img_reshape),  #for nanolive
+                    # transforms.RandZoomd(keys=["image", "label"],prob=0.5,min_zoom=0.85,max_zoom=1.05),
+                    # transforms.Spacingd(
+                    #     keys=["image", "label"], pixdim=(args.space_x, args.space_y, args.space_z), mode=("bilinear", "nearest")
+                    # ),   # for  anisotropic datasets
+                    transforms.ScaleIntensityRanged(
+                        keys=["image"], a_min=args.a_min, a_max=args.a_max, b_min=args.b_min, b_max=args.b_max, clip=True
+                    ),
+                    transforms.RandSpatialCropSamplesd(
+                        keys=["image","label"],
+                        roi_size=[args.roi_x, args.roi_y, args.roi_z],
+                        num_samples=2,
+                        random_center=True,
+                        random_size=False,
+                    ),
+                    transforms.ToTensord(keys=["image", "label"]),
+                ]
+            
         )
         if 1: #no cache
             train_ds = data.Dataset(data=train_datalist, transform=train_transform)

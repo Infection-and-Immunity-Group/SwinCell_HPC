@@ -34,7 +34,9 @@ parser.add_argument("--outdir", default="./", type=str, help="Output directory p
 parser.add_argument("--in_channels", default=1, type=int, help="number of input channels")
 parser.add_argument("--out_channels", default=4, type=int, help="number of output channels, #cell probability channel + #flow channels")
 parser.add_argument("--feature_size", default=48, type=int, help="Feature size")
-
+parser.add_argument("--infer_overlap", default=0.5, type=float, help="Sliding window inference overlap")
+parser.add_argument("--save_flows", action="store_true", help="Save predicted flows")
+parser.add_argument("--save_preview", action="store_true", help="Save preview of prediction")
 args = parser.parse_args()
 infer_ROI = (256,256,32)
 device = get_device()
@@ -118,38 +120,38 @@ with torch.no_grad():
                 tifffile.imwrite(args.outdir +'/pred_logits_transposed,'+out_filename ,logits_out_transposed)
             
             # print(logits.shape, logits.max(),logits.min())
-            masks_recon,p = compute_masks(logits_out_transposed[[3,2,1],:,:,:],logits_out_transposed[0,:,:,:],cellprob_threshold=0.4,flow_threshold=0.4, do_3D=True,min_size=2500//args.downsample_factor//args.downsample_factor, use_gpu=True)
+            masks_recon,p = compute_masks(logits_out_transposed[[3,2,1],:,:,:],logits_out_transposed[0,:,:,:],cellprob_threshold=0.4,flow_threshold=0.4, do_3D=True,min_size=2500//args.downsample_factor//args.downsample_factor, use_gpu=True if device.type =="cuda" else False)
             
             print(masks_recon.shape)
 
-n_row = 2
-fig, axes = plt.subplots(2, 2,sharex=False, sharey=False, figsize=(12,10))
-img_shape = logits.shape
-slice2view = int(img_shape[-1]//2)
-print('slice to view',slice2view)
-# datai = next(iter(test_loader))
-img=np.squeeze(data_test.detach().cpu().numpy())
-print(img.shape,logits_out.shape)
-flow= logits_out[1:4]
-flow_slice = flow[:,:,:,slice2view].transpose(1, 2, 0)
-print(flow.shape)
+if args.save_preview:
+    n_row = 2
+    fig, axes = plt.subplots(2, 2,sharex=False, sharey=False, figsize=(12,10))
+    img_shape = logits.shape
+    slice2view = int(img_shape[-1]//2)
+    # datai = next(iter(test_loader))
+    img=np.squeeze(data_test.detach().cpu().numpy())
+    print(img.shape,logits_out.shape)
+    flow= logits_out[1:4]
+    flow_slice = flow[:,:,:,slice2view].transpose(1, 2, 0)
+    print(flow.shape)
 
 
-axes[0,0].imshow(img[:,:,slice2view])
-axes[0,0].set_title('Raw')
+    axes[0,0].imshow(img[:,:,slice2view])
+    axes[0,0].set_title('Raw')
 
-axes[0,1].imshow(logits_out[0,:,:,slice2view])
-axes[0,1].set_title('Cell prob')
+    axes[0,1].imshow(logits_out[0,:,:,slice2view])
+    axes[0,1].set_title('Cell prob')
 
-axes[1,0].imshow(flow_slice)
-axes[1,0].set_title('Predicted flows')                                                                                       
+    axes[1,0].imshow(flow_slice)
+    axes[1,0].set_title('Predicted flows')                                                                                       
 
 
-axes[1,1].imshow(masks_recon[slice2view].T,cmap=get_random_cmap(30))
-axes[1,1].set_title('Predicted Masks')
+    axes[1,1].imshow(masks_recon[slice2view].T,cmap=get_random_cmap(30))
+    axes[1,1].set_title('Predicted Masks')
 
-for i in range(2):
-    for j in range(2):
-        axes[i,j].axis('off')
+    for i in range(2):
+        for j in range(2):
+            axes[i,j].axis('off')
 
-plt.savefig(os.path.join(args.outdir, "output_example.png"))
+    plt.savefig(os.path.join(args.outdir, "output_example.png"))

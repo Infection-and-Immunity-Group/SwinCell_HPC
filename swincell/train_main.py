@@ -71,6 +71,8 @@ parser.add_argument("--use_checkpoint", action="store_true", help="use gradient 
 parser.add_argument("--spatial_dims", default=3, type=int, help="spatial dimension of input data")
 parser.add_argument("--downsample_factor", default=1, type=int, help="downsampling rate of input data, increase it when input images have very high resolution")
 parser.add_argument("--pretrained_dir",default="./pretrained_models/",type=str,help="pretrained checkpoint directory",)
+parser.add_argument("--compute_flows", action="store_true", help="Set true if you need to calculate flows")
+
 
 
 
@@ -108,7 +110,7 @@ def main_worker(gpu, args):
         pass
     args.test_mode = False
     # loader = get_loader_Allen_tiff(args)  # Loader for allencell dataset
-    loader = folder_loader(args)
+    loader = folder_loader(args, compute_flows=args.compute_flows)
     print(args.rank, " gpu", args.gpu)
     if args.rank == 0:
         print("Batch size is:", args.batch_size, "epochs", args.max_epochs)
