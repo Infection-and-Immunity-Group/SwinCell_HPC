@@ -405,7 +405,10 @@ def folder_loader(args, compute_flows = False):
         if args.fold is None:
             N = len(os.listdir(os.path.join(args.data_dir,'images')))
             img_full_paths = natsorted(glob.glob(os.path.join(args.data_dir,'images/*.tif*')))
-            label_full_paths = natsorted(glob.glob(os.path.join(args.data_dir,'masks_with_flows/*.tif*')))
+            if compute_flows:
+                label_full_paths = natsorted(glob.glob(os.path.join(args.data_dir,'labels/*.tif*')))
+            else:
+                label_full_paths = natsorted(glob.glob(os.path.join(args.data_dir,'masks_with_flows/*.tif*')))
 
             if len(img_full_paths)<5:
                 img_full_paths = img_full_paths * 10
@@ -423,7 +426,11 @@ def folder_loader(args, compute_flows = False):
             # print('length of datasets',N)
             # whole dataset
             img_full_paths = natsorted(glob.glob(os.path.join(args.data_dir,'images/*.tif*')))
-            label_full_paths = natsorted(glob.glob(os.path.join(args.data_dir,'masks_with_flows/*.tif*')))
+
+            if compute_flows:
+                label_full_paths = natsorted(glob.glob(os.path.join(args.data_dir,'labels/*.tif*')))
+            else:
+                label_full_paths = natsorted(glob.glob(os.path.join(args.data_dir,'masks_with_flows/*.tif*')))
             #------split -------
             valid_img_full_paths = [f for i,f in enumerate(img_full_paths) if i%5 == args.fold-1]
             valid_label_full_paths = [f for i,f in enumerate(label_full_paths) if i%5 == args.fold-1]
