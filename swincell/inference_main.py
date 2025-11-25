@@ -116,10 +116,17 @@ with torch.no_grad():
 
             logits_out_transposed = np.transpose(logits_out,(0,3,2,1))
             flows = logits_out[1:4,:,:,:]
-            if args.save_logits:
-                tifffile.imwrite(args.outdir +'/pred_logits_transposed,'+out_filename ,logits_out_transposed)
+            if args.save_flows:
+                tifffile.imwrite(
+                    os.path.join(args.output_dir, f'logits_transposed_{out_filename}'),
+                    logits_out_transposed
+                )
+
+            tifffile.imwrite(
+                os.path.join(args.output_dir, f'masks_{out_filename}'),
+                masks_recon
+            )
             
-            # print(logits.shape, logits.max(),logits.min())
             masks_recon,p = compute_masks(logits_out_transposed[[3,2,1],:,:,:],logits_out_transposed[0,:,:,:],cellprob_threshold=0.4,flow_threshold=0.4, do_3D=True,min_size=2500//args.downsample_factor//args.downsample_factor, use_gpu=True if device.type =="cuda" else False)
             
             print(masks_recon.shape)
@@ -129,7 +136,6 @@ if args.save_preview:
     fig, axes = plt.subplots(2, 2,sharex=False, sharey=False, figsize=(12,10))
     img_shape = logits.shape
     slice2view = int(img_shape[-1]//2)
-    # datai = next(iter(test_loader))
     img=np.squeeze(data_test.detach().cpu().numpy())
     print(img.shape,logits_out.shape)
     flow= logits_out[1:4]

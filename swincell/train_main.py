@@ -263,6 +263,9 @@ def main_worker(gpu, args):
     )
     if args.plot_loss:
         import matplotlib.pyplot as plt
+        import matplotlib
+        matplotlib.use("Agg")  # non-interactive backend good for savefig
+
         plt.plot(train_losses)
         plt.xlabel('epoch', fontsize=14)
         plt.ylabel('loss', fontsize=14)
