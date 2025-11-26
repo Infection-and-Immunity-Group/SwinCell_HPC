@@ -20,6 +20,11 @@ import matplotlib
 matplotlib.use("Agg")  # non-interactive backend good for savefig
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from swincell.utils.utils import AverageMeter, distributed_all_gather
+from monai.data import decollate_batch
+from monai.utils.enums import MetricReduction
+from monai.metrics import DiceMetric
+
 parser = argparse.ArgumentParser(description="SwinCell Training")
 parser.add_argument("--datadir", default=None, help="Dataset path")
 parser.add_argument("--a_min", default=0, type=float, help="cliped min input value")
@@ -51,10 +56,16 @@ if not os.path.exists(args.outdir):
 
 image_paths = sorted(glob(os.path.join(args.datadir+"/images/", "*"))) 
 label_paths = sorted(glob(os.path.join(args.datadir+"/labels/", "*"))) 
-test_datalist = [
-    {"image": img, "label": lbl}
-    for img, lbl in zip(image_paths, label_paths)
-]
+if len(label_paths)>0:
+    test_datalist = [
+        {"image": img, "label": lbl}
+        for img, lbl in zip(image_paths, label_paths)
+    ]
+else:
+    test_datalist = [
+        {"image": img}
+        for img in image_paths
+    ]
 if args.dataset =='colon':
     img_shape= (1300,1030,129) #original shape
     img_reshape = (img_shape[0]//args.downsample_factor,img_shape[1]//args.downsample_factor,img_shape[2]//args.downsample_factor)
@@ -103,16 +114,36 @@ model_inferer = partial(
 )
 post_sigmoid = Activations(sigmoid=True)
 post_pred = AsDiscrete(argmax=False, threshold=0.5)
+run_acc = AverageMeter()
+acc_func = DiceMetric(include_background=True, reduction=MetricReduction.MEAN_BATCH, get_not_nans=True)
+
 with torch.no_grad():
         for idx, batch_data in tqdm(enumerate(test_loader)):
             out_filename = test_datalist[idx]['image'].split('.')[0].split('/')[-1] +'_pred.tiff' 
             data_test = batch_data["image"]
             data_test = data_test.to(device)
-    
+            if len(label_paths)>0:
+                label_test = batch_data["label"]
+                label_test = label_test.to(device)
             logits = model_inferer(data_test)         
             logits_out =  np.squeeze(logits.detach().cpu().numpy())
             logits_out[0] = post_pred(post_sigmoid(logits_out[0]))
-
+            if len(label_paths)>0:
+                val_labels_list = decollate_batch(label_test)
+                val_outputs_list = decollate_batch(logits)
+                val_output_convert = [post_pred(post_sigmoid(val_pred_tensor[0])) for val_pred_tensor in val_outputs_list]
+                val_label_convert = [val_label_tensor[0] for val_label_tensor in val_labels_list]
+                acc_func.reset()
+                acc_func(y_pred=val_output_convert, y=val_label_convert)
+                #validate with the binary masks 
+                acc, not_nans = acc_func.aggregate()
+                acc = acc.to(device)
+                run_acc.update(acc.cpu().numpy(), n=not_nans.cpu().numpy())
+                Dice_Class = run_acc.avg[0]
+                print(
+                        "Cell dice class1:",
+                        Dice_Class,
+                    )
             logits_out_transposed = np.transpose(logits_out,(0,3,2,1))
             flows = logits_out[1:4,:,:,:]
             if args.save_flows:
@@ -121,13 +152,13 @@ with torch.no_grad():
                     logits_out_transposed
                 )
 
+            
+            
+            masks_recon,p = compute_masks(logits_out_transposed[[3,2,1],:,:,:],logits_out_transposed[0,:,:,:],cellprob_threshold=0.4,flow_threshold=0.4, do_3D=True,min_size=2500//args.downsample_factor//args.downsample_factor, use_gpu=True if device.type =="cuda" else False)
             tifffile.imwrite(
                 os.path.join(args.outdir, f'masks_{out_filename}'),
                 masks_recon
             )
-            
-            masks_recon,p = compute_masks(logits_out_transposed[[3,2,1],:,:,:],logits_out_transposed[0,:,:,:],cellprob_threshold=0.4,flow_threshold=0.4, do_3D=True,min_size=2500//args.downsample_factor//args.downsample_factor, use_gpu=True if device.type =="cuda" else False)
-            
             print(masks_recon.shape)
 
 if args.save_preview:
@@ -140,7 +171,6 @@ if args.save_preview:
     flow= logits_out[1:4]
     flow_slice = flow[:,:,:,slice2view].transpose(1, 2, 0)
     print(flow.shape)
-
 
     axes[0,0].imshow(img[:,:,slice2view])
     axes[0,0].set_title('Raw')

@@ -246,7 +246,7 @@ def main_worker(gpu, args):
 
     semantic_classes = ["Class1", "Class2", "Class3"]
 
-    accuracy, train_losses = run_training(
+    accuracy, train_losses, val_losses = run_training(
         model=model,
         train_loader=loader[0],
         val_loader=loader[1],
@@ -266,10 +266,12 @@ def main_worker(gpu, args):
         import matplotlib
         matplotlib.use("Agg")  # non-interactive backend good for savefig
 
-        plt.plot(train_losses)
+        plt.plot(train_losses, label = "Train loss")
+        plt.plot(val_losses, label = "Train loss")
         plt.xlabel('epoch', fontsize=14)
         plt.ylabel('loss', fontsize=14)
-        plt.title('Training loss')
+        plt.title('Loss plots')
+        plt.legend()
         plt.savefig(os.path.join(args.logdir, "train_losses.png"))
         plt.close()
 
