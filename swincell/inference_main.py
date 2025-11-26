@@ -47,7 +47,7 @@ model.load_state_dict(state_dict)
 model.to(device)
 model.eval()
 if not os.path.exists(args.outdir):
-    os.makedirs(parser.outdir)
+    os.makedirs(args.outdir)
 
 image_paths = sorted(glob(os.path.join(args.datadir+"/images/", "*"))) 
 label_paths = sorted(glob(os.path.join(args.datadir+"/labels/", "*"))) 
@@ -117,12 +117,12 @@ with torch.no_grad():
             flows = logits_out[1:4,:,:,:]
             if args.save_flows:
                 tifffile.imwrite(
-                    os.path.join(args.output_dir, f'logits_transposed_{out_filename}'),
+                    os.path.join(args.outdir, f'logits_transposed_{out_filename}'),
                     logits_out_transposed
                 )
 
             tifffile.imwrite(
-                os.path.join(args.output_dir, f'masks_{out_filename}'),
+                os.path.join(args.outdir, f'masks_{out_filename}'),
                 masks_recon
             )
             

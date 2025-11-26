@@ -15,6 +15,7 @@ swincell.egg-info
 junk
 # swincell/notebooks_plot_results/*ipynb
 Nanolive_dataset
+test_colon
 *.tar
 .yaml
 .venv2

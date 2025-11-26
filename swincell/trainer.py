@@ -3,8 +3,7 @@ import shutil
 import time
 import numpy as np
 import torch
-import torch.nn.parallel
-import torch.utils.data.distributed
+from tqdm import tqdm
 from tensorboardX import SummaryWriter
 from torch.cuda.amp import autocast
 from swincell.utils.utils import AverageMeter, distributed_all_gather
@@ -77,11 +76,11 @@ def train_epoch(model, loader, optimizer, epoch, loss_func, device, args):
     return run_loss.avg, img_list
 
 
-def val_epoch(model, loader, epoch, acc_func, device, args, model_inferer=None, post_sigmoid=None, post_pred=None):
+def val_epoch(model, loader, epoch, acc_func, device, args, model_inferer=None, post_sigmoid=None, post_pred=None, loss_func=None):
     model.eval()
     start_time = time.time()
     run_acc = AverageMeter()   # cell probs
-    # run_acc2 = AverageMeter()  # flows
+    run_val_loss = AverageMeter()
 
     with torch.no_grad():
         for idx, batch_data in enumerate(loader):
@@ -89,6 +88,13 @@ def val_epoch(model, loader, epoch, acc_func, device, args, model_inferer=None, 
             data, target = data.to(device), target.to(device)
             with autocast(enabled=False):
                 logits = model_inferer(data)
+                if args.use_flows:
+                    loss_func1, loss_func2 = loss_func
+                    val_loss = 5 * loss_func1(logits[:,1:], target[:,1:]) + loss_func2(logits[:,0], target[:,0])
+                else:
+                    val_loss = loss_func(logits[:,0], target[:,0])
+            # accumulate
+            run_val_loss.update(val_loss.item(), n=args.batch_size)
             val_labels_list = decollate_batch(target)
             val_outputs_list = decollate_batch(logits) # a list of length 4 (number of input channels =4)
 
@@ -143,7 +149,7 @@ def val_epoch(model, loader, epoch, acc_func, device, args, model_inferer=None, 
         else:
             img_list = None
 
-    return run_acc.avg, img_list
+    return run_acc.avg,run_val_loss.avg, img_list
 
 
 def save_checkpoint(model, epoch, args, filename="model.pt", best_acc=0, optimizer=None, scheduler=None):
@@ -176,6 +182,7 @@ def run_training(
     semantic_classes=None,
 ):
     train_losses = []
+    val_losses = []
     writer = None
     if args.logdir is not None and args.rank == 0:
         writer = SummaryWriter(log_dir=args.logdir)
@@ -186,7 +193,7 @@ def run_training(
     model = model.to(device)
 
     val_acc_max = 0.0
-    for epoch in range(start_epoch, args.max_epochs):
+    for epoch in tqdm(range(start_epoch, args.max_epochs)):
         if args.distributed:
             train_loader.sampler.set_epoch(epoch)
             torch.distributed.barrier()
@@ -209,24 +216,26 @@ def run_training(
             if args.distributed:
                 torch.distributed.barrier()
             epoch_time = time.time()
-            val_acc,val_img_list = val_epoch(
+            val_acc,val_loss,val_img_list = val_epoch(
                 model,
                 val_loader,
                 epoch=epoch,
                 acc_func=acc_func,
+                loss_func=loss_func,
                 model_inferer=model_inferer,
                 device = device,
                 args=args,
                 post_sigmoid=post_sigmoid,
                 post_pred=post_pred,
             )
-
+            val_losses.append(val_loss)
             if args.rank == 0:
 
                 print(
                     "Final validation stats {}/{}".format(epoch, args.max_epochs - 1),
                     ", Dice_Class1:",
                     val_acc[0],
+                    "loss: {:.4f}".format(val_loss),
                     ", time {:.2f}s".format(time.time() - epoch_time),
                 )
                 # print(epoch, val_acc)
@@ -265,4 +274,4 @@ def run_training(
 
     print("Training Finished !, Best Accuracy: ", val_acc_max)
 
-    return val_acc_max, train_losses
+    return val_acc_max, train_losses, val_losses
