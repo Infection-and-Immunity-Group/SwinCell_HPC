@@ -463,7 +463,10 @@ def folder_loader(args, compute_flows = False):
             img_shape=(512,512,96)
             img_reshape = (img_shape[0]//args.downsample_factor,img_shape[1]//args.downsample_factor,img_shape[2]//args.downsample_factor)
             img_reshape = tuple(int(e) for e in img_reshape)
-
+        elif args.dataset =='neutro_vaccinia':
+            img_shape=(14,555,555)
+            img_reshape = (img_shape[0]//args.downsample_factor,img_shape[1]//args.downsample_factor,img_shape[2]//args.downsample_factor)
+            img_reshape = tuple(int(e) for e in img_reshape)
         else:
             img_reshape = None
             raise Warning("dataset not defined")
